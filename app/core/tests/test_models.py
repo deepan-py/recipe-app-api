@@ -1,7 +1,13 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from .. import models
 # ? https://docs.djangoproject.com/en/3.2/topics/auth/customizing/#referencing-the-user-model  # noqa: E501
 # noqa: E501 is used to suppress error E501 i.e., character > 79
+
+
+def sample_user(email='test@test.com', password='test@123'):
+    """Create a sample user"""
+    return get_user_model().objects.create_user(email, password)
 
 
 class ModelTests(TestCase):
@@ -39,3 +45,11 @@ class ModelTests(TestCase):
         )
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
+
+    def test_tag_str(self):
+        """"Test the tag string representation"""
+        tag = models.Tag.objects.create(
+            user=sample_user(),
+            name='vegan tag'
+        )
+        self.assertEqual(str(tag), tag.name)

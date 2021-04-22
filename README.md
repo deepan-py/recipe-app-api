@@ -1,2 +1,3 @@
 # recipe-app-api
-recipe app API sourece code
+Recipe app API sourece code
+A TDD way of web developement using docker
