@@ -4,8 +4,18 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Tag
+
+try:
+    from ...core.models import Tag
+except ImportError:
+    from core.models import Tag
+
+# The above try except block is not necessary both are same but
+# from ...core.models import Tag raises ImportError in django tests
+# from core.models import Tag causes import warning in vscode
+# So for my convenience I used this try except block
 from ..serializer import TagSerializer
+
 
 TAGS_URL = reverse('recipe:tag-list')
 
@@ -56,3 +66,21 @@ class PrivateTagsApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]['name'], tag.name)
+
+    def test_create_tag_successful(self):
+        """Test creating a new tag"""
+        payload = {
+            'name': 'test tag'
+        }
+        self.client.post(TAGS_URL, payload)
+        exists = Tag.objects.filter(
+            user=self.user,
+            name=payload['name']
+        ).exists()
+        self.assertTrue(exists)
+
+    def test_create_tag_invalid(self):
+        """Test creating a new tag with invalid payload"""
+        payload = {'name': ''}
+        res = self.client.post(TAGS_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
