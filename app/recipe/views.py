@@ -3,9 +3,9 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 try:
-    from ..core.models import Tag, Ingredient
+    from ..core.models import Tag, Ingredient, Recipe
 except ImportError:
-    from core.models import Tag, Ingredient
+    from core.models import Tag, Ingredient, Recipe
 from . import serializer
 
 # Create your views here.
@@ -76,3 +76,15 @@ class IngredientViewSets(BaseRecipeAttrViewSet):
 
 #     def perform_create(self, serializer):
 #         serializer.save(user=self.request.user)
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    """Manage recipes in DB"""
+    serializer_class = serializer.RecipeSerializer
+    queryset = Recipe.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        """Retrieve the recipes for the authenticated user"""
+        return self.queryset.filter(user=self.request.user)

@@ -9,6 +9,7 @@ router.register('ingredients', views.IngredientViewSets,
                 basename='ingredients')
 # ? https://www.django-rest-framework.org/api-guide/routers/#usage
 # the above link gives details of basenmae
+router.register('recipes', views.RecipeViewSet)
 
 app_name = 'recipe'
 
