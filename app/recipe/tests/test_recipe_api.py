@@ -3,6 +3,9 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
+from PIL import Image
+import tempfile
+import os
 
 try:
     from ...core.models import Recipe, Ingredient, Tag
@@ -12,6 +15,11 @@ except ImportError:
 from ..serializer import RecipeSerializer, RecipeDetailSerializer
 
 RECIPES_URL = reverse('recipe:recipe-list')
+
+
+def image_upload_url(recipe_id):
+    """Return URL for recipe image upload"""
+    return reverse('recipe:recipe-upload-image', args=[recipe_id])
 
 
 def detail_url(recipe_id):
@@ -143,3 +151,72 @@ class PrivateRecipeApiTests(TestCase):
         Ingredients = recipe.ingredients.all()
         self.assertIn(ingredient1, Ingredients)
         self.assertIn(ingredient2, Ingredients)
+
+    def test_partial_update_recipe(self):
+        """Test updating a recipe with PATCH"""
+        recipe = sample_recipe(user=self.user)
+        recipe.tags.add(sample_tag(user=self.user))
+        new_tag = sample_tag(user=self.user, name='Curry')
+        payload = {
+            'title': 'changed',
+            'tags': [new_tag.id]
+        }
+        url = detail_url(recipe.id)
+        self.client.patch(url, payload)
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.title, payload['title'])
+        tags = recipe.tags.all()
+        self.assertEqual(len(tags), 1)
+        self.assertIn(new_tag, tags)
+
+    def test_full_update_recipe(self):
+        """Test updating recipe with PUT"""
+        recipe = sample_recipe(user=self.user)
+        recipe.tags.add(sample_tag(user=self.user))
+        payload = {
+            'title': 'alter1',
+            'time_minutes': 15,
+            'price': 20.00
+        }
+        url = detail_url(recipe.id)
+        self.client.put(url, payload)
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.title, payload['title'])
+        self.assertEqual(recipe.time_minutes, payload['time_minutes'])
+        self.assertEqual(recipe.price, payload['price'])
+        tags = recipe.tags.all()
+        self.assertEqual(len(tags), 0)
+
+
+class RecipeImageUploadTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            'test@test.com',
+            'test@123'
+        )
+        self.client.force_authenticate(self.user)
+        self.recipe = sample_recipe(user=self.user)
+
+    def tearDown(self):
+        self.recipe.image.delete()
+
+    def test_upload_image_to_recipe(self):
+        """Test uploading an email to recipe"""
+        url = image_upload_url(self.recipe.id)
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as ntf:
+            img = Image.new('RGB', (10, 10))
+            img.save(ntf, format='JPEG')
+            ntf.seek(0)
+            res = self.client.post(url, {'image': ntf}, format='multipart')
+        self.recipe.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.assertTrue(os.path.exists(self.recipe.image.path))
+
+    def test_upload_image_bad_request(self):
+        """Test Uploading an invalid image"""
+        url = image_upload_url(self.recipe.id)
+        res = self.client.post(url, {'image': 'notimage'}, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

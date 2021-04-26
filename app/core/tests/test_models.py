@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from unittest.mock import patch
 from .. import models
 # ? https://docs.djangoproject.com/en/3.2/topics/auth/customizing/#referencing-the-user-model  # noqa: E501
 # noqa: E501 is used to suppress error E501 i.e., character > 79
@@ -71,3 +72,12 @@ class ModelTests(TestCase):
             price=5.00
         )
         self.assertEqual(str(recipe), recipe.title)
+
+    @patch('uuid.uuid4')
+    def test_recipe_file_name_uuid(self, mock_uuid):
+        """Test that image is saved in the correct location"""
+        uuid = 'test-uuid'
+        mock_uuid.return_value = uuid
+        file_path = models.recipe_image_file_path(None, 'my_img.jpg')
+        exp_path = f'uploads/recipe/{uuid}.jpg'
+        self.assertEqual(file_path, exp_path)
