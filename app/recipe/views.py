@@ -23,6 +23,8 @@ class BaseRecipeAttrViewSet(viewsets.GenericViewSet,
     def get_queryset(self):
         """Return objects for the current authenticated user only"""
         assigned_only = bool(self.request.query_params.get('assigned_only'))
+        # the url should be /tags/?assigned_only=1
+        # to see the desired filter
         queryset = self.queryset
         if assigned_only:
             queryset = queryset.filter(recipe__isnull=False)
