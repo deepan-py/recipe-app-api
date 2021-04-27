@@ -6,9 +6,9 @@ from rest_framework.test import APIClient
 
 from ..serializer import IngredientSerializer
 try:
-    from ...core.models import Ingredient
+    from ...core.models import Ingredient, Recipe
 except ImportError:
-    from core.models import Ingredient
+    from core.models import Ingredient, Recipe
 
 INGREDIENT_URL = reverse('recipe:ingredients-list')
 # the 'ingredients-list' the firstpart 'ingredients' \
@@ -77,3 +77,26 @@ class PrivateIngredientApiTests(TestCase):
         payload = {'name': ''}
         res = self.client.post(INGREDIENT_URL, payload)
         self.assertEqual(res.status_code,  status.HTTP_400_BAD_REQUEST)
+
+    def test_retrieve_ingredients_assigned_to_recipe(self):
+        """Test filtering ingredients by those assigned to recipes"""
+        ingredient1 = Ingredient.objects.create(
+            user=self.user,
+            name='Apples'
+        )
+        ingredient2 = Ingredient.objects.create(
+            user=self.user,
+            name='another'
+        )
+        recipe = Recipe.objects.create(
+            title='New',
+            time_minutes=10,
+            price=5.00,
+            user=self.user
+        )
+        recipe.ingredients.add(ingredient1)
+        res = self.client.get(INGREDIENT_URL, {'assigned_only': 1})
+        serializer1 = IngredientSerializer(ingredient1)
+        serializer2 = IngredientSerializer(ingredient2)
+        self.assertIn(serializer1.data, res.data)
+        self.assertNotIn(serializer2.data, res.data)
