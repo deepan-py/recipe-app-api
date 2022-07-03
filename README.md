@@ -1,3 +1,5 @@
+[![Build Status](https://app.travis-ci.com/deepan-py/recipe-app-api.svg?branch=main)](https://app.travis-ci.com/deepan-py/recipe-app-api)
+
 # recipe-app-api
 Recipe app API source code
 
